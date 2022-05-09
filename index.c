@@ -13,6 +13,8 @@
 #include "tipo2.h"
 #include "aux_functions.h"
 
+#define start_csv_offset 60
+
 int main()
 {
     int operacao;
@@ -26,8 +28,21 @@ int main()
             char *tipo_arquivo = read_till_delimitor(stdin);
             char *nome_arquivo_entrada = read_till_delimitor(stdin);
             char *nome_arquivo_saida = read_till_delimitor(stdin);
-
+  
             FILE *fp = fopen(nome_arquivo_saida, "wb");
+            inicializa_cabecalho(fp);
+
+            FILE *fcsv = fopen(nome_arquivo_entrada, "rb");
+            fseek(fcsv, start_csv_offset, SEEK_SET);
+
+            while(!is_eof(fcsv))
+            {
+                tipo1_t reg_lido = le_registro_csv(fcsv);
+                grava_registro(fp, reg_lido);
+            }
+
+            fclose(fcsv);
+            fclose(fp);
 
             binarioNaTela(nome_arquivo_saida);
             
@@ -40,6 +55,18 @@ int main()
         case 2:
             char *tipo_arquivo = read_till_delimitor(stdin);
             char *nome_arquivo_entrada = read_till_delimitor(stdin);
+
+            FILE *fp = fopen(nome_arquivo_entrada, "rb");
+            
+            int count_RRN = 0;
+            int ultimo_RRN = get_proxRRN(fp);
+
+            while(count_RRN < ultimo_RRN)
+            {
+                tipo1_t reg_buscado = busca_prox_registro(fp);
+                printa_registro(reg_buscado);
+                count_RRN++;  
+            }
 
             free(tipo_arquivo);
             free(nome_arquivo_entrada);
@@ -61,6 +88,8 @@ int main()
                 valor_campos[i] = read_till_delimitor(stdin);
             }
 
+            busca_e_printa_registro_por_parametro(fp, nome_campos, valor_campos, num_campos);
+
             free(tipo_arquivo);
             free(nome_arquivo_entrada);
             for(int i = 0; i < num_campos; i++)
@@ -77,8 +106,11 @@ int main()
             char *tipo_arquivo = read_till_delimitor(stdin);
             char *nome_arquivo_entrada = read_till_delimitor(stdin);
             
-            int rrn;
-            scanf("%d%*c", &rrn);
+            int RRN;
+            scanf("%d%*c", &RRN);
+
+            tipo1_t reg = busca_registro_por_RRN(fp, RRN);
+            printa_registro(reg);
 
             break;
     }

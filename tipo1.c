@@ -23,21 +23,20 @@ struct cabecalho1
     int nroRegRem;
 };
 
-struct tipo1
+int is_eof(FILE *fp)
 {
-    int id;
-    int ano;
-    int qtt;
-    char sigla[2];
-    char *cidade;
-    char *marca;
-    char *modelo;
-    char removido;
-    int prox;
-    int tamCidade;
-    int tamMarca;
-    int tamModelo;
-};
+    int is_eof;
+    char aux;
+
+    int antigo = ftell(fp);
+
+    if(fread(&aux, sizeof(char), 1, fp) == 0)
+        is_eof = 1;
+    else
+        is_eof = 0;
+
+    fseek(fp, -1, antigo);
+}
 
 cabecalho1_t define_cabecalho()
 {
@@ -85,10 +84,10 @@ void inicializa_cabecalho(FILE *fp)
 
 void atualiza_status(FILE *fp, char status)
 {
-    //antigo = ftell()
+    int old_offset = ftell(fp);
     fseek(fp, 0, SEEK_SET);
     fwrite(&status, sizeof(char), 1, fp);
-    //fseek antigo  
+    fseek(fp, old_offset, SEEK_SET);
 }
 
 void atualiza_topo(FILE *fp, int topo)
@@ -130,6 +129,8 @@ void atualiza_nroRegRem(FILE *fp, int nroRegRem)
 void grava_registro(FILE *fp, tipo1_t dados)
 {
     char codC5 = 0, codC6 = 1, codC7 = 2;
+    dados.removido = '0';
+    dados.prox = get_proxRRN(fp);
 
     fwrite(&dados.removido, sizeof(char), 1, fp);
     fwrite(&dados.prox, sizeof(int), 1, fp);
@@ -138,17 +139,28 @@ void grava_registro(FILE *fp, tipo1_t dados)
     fwrite(&dados.qtt, sizeof(int), 1, fp);
     fwrite(dados.sigla, sizeof(char), sizeof(dados.sigla), fp);
     
-    fwrite(&dados.tamCidade, sizeof(int), 1, fp);
-    fwrite(&codC5, sizeof(char), 1, fp);
-    fwrite(dados.cidade, sizeof(char), sizeof(dados.cidade), fp);
+    if(dados.tamCidade > 0)
+    {
+        fwrite(&dados.tamCidade, sizeof(int), 1, fp);
+        fwrite(&codC5, sizeof(char), 1, fp);
+        fwrite(dados.cidade, sizeof(char), sizeof(dados.cidade), fp);
+    }
     
-    fwrite(&dados.tamMarca, sizeof(int), 1, fp);
-    fwrite(&codC6, sizeof(char), 1, fp);
-    fwrite(dados.marca, sizeof(char), sizeof(dados.marca), fp);
+    if(dados.tamMarca > 0)
+    {
+        fwrite(&dados.tamMarca, sizeof(int), 1, fp);
+        fwrite(&codC6, sizeof(char), 1, fp);
+        fwrite(dados.marca, sizeof(char), sizeof(dados.marca), fp);
+    }
     
-    fwrite(&dados.tamModelo, sizeof(int), 1, fp);
-    fwrite(&codC7, sizeof(char), 1, fp);
-    fwrite(dados.modelo, sizeof(char), sizeof(dados.modelo), fp);
+    if(dados.tamModelo > 0)
+    {
+        fwrite(&dados.tamModelo, sizeof(int), 1, fp);
+        fwrite(&codC7, sizeof(char), 1, fp);
+        fwrite(dados.modelo, sizeof(char), sizeof(dados.modelo), fp);
+    }
+
+    atualiza_proxRRN(fp, dados.prox + 1);
 }
 
 tipo1_t le_registro_csv(FILE *fp)
@@ -161,30 +173,53 @@ tipo1_t le_registro_csv(FILE *fp)
     free(aux);
 
     aux = read_till_delimitor();
-    novo.ano = atoi(aux);
+    if(aux[0] != '\0')
+        novo.ano = atoi(aux);
+    else
+        novo.ano = -1;
     free(aux);
 
     aux = read_till_delimitor();
-    strcpy(novo.cidade, aux);
-    novo.tamCidade = sizeof(aux);
+    if(aux[0] != '\0')
+    {
+        strcpy(novo.cidade, aux);
+        novo.tamCidade = sizeof(aux);
+    }
+    else
+        novo.tamCidade = 0; 
     free(aux);
 
     aux = read_till_delimitor();
-    novo.qtt = atoi(aux);
+    if(aux[0] != '\0')
+        novo.qtt = atoi(aux);
+    else
+        novo.qtt = -1;
     free(aux);
 
     aux = read_till_delimitor();
-    strcpy(novo.sigla, aux);
+    if(aux[0] != '\0')
+        strcpy(novo.sigla, aux);
+    else
+        strcpy(novo.sigla, "$$");
     free(aux);
 
-
     aux = read_till_delimitor();
-    strcpy(novo.marca, aux);
-    novo.tamMarca = sizeof(aux);
+    if(aux[0] != '\0')
+    {
+        strcpy(novo.marca, aux);
+        novo.tamMarca = sizeof(aux);
+    }
+    else
+        novo.tamMarca = 0;
     free(aux);
     
     aux = read_till_delimitor();
-    strcpy(novo.modelo, aux);
-    novo.tamModelo = sizeof(aux);
+    if(aux[0] != '\0')
+    {
+        strcpy(novo.modelo, aux);
+        novo.tamModelo = sizeof(aux);
+    }
+    else
+        novo.tamModelo = 0;
     free(aux);
 }
