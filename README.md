@@ -1,4 +1,3 @@
-# Trabalho final arquivos
+# Manipulação de arquivos binários em C
 
-Trabalho feito para disciplina de arquivos.
-Manipulação de registros em binário usando C.
+Trabalho feito para disciplina de organização de arquivos.
